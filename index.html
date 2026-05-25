@@ -1,116 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Metabolic — Calculadora Harris-Benedict</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metabolic</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:#0d0f0e;
-  --bg3:#1c201c;
-  --card:#1a1e1a;
-  --text:#f0ede8;
-  --text2:#a8a49e;
-  --text3:#686462;
-  --accent:#c8f560;
-  --accent-dim:rgba(200,245,96,0.12);
-  --prot:#6ab5ff;
-  --carb:#7de8a0;
-  --fat:#ffc46b;
-}
-
-body{
-  font-family:'DM Sans';
-  background: radial-gradient(ellipse at bottom,#0d0f0e,#050605);
-  color:var(--text);
-  min-height:100vh;
-  overflow-x:hidden;
-}
-
-/* 🌌 ESTRELLAS */
-.stars,.stars2,.stars3{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:0;
-}
-
-.stars{
-  background-image:radial-gradient(1px 1px at 20px 30px,#fff,transparent),
-                   radial-gradient(1px 1px at 80px 90px,#fff,transparent);
-  background-size:250px 250px;
-  opacity:.3;
-  animation:move 120s linear infinite;
-}
-
-.stars2{
-  background-image:radial-gradient(1px 1px at 60px 70px,#fff,transparent);
-  background-size:400px 400px;
-  opacity:.2;
-  animation:move 200s linear infinite;
-}
-
-.stars3{
-  background-image:radial-gradient(1px 1px at 10px 10px,#fff,transparent);
-  background-size:600px 600px;
-  opacity:.1;
-  animation:move 300s linear infinite;
-}
-
-@keyframes move{
-  from{transform:translateY(0)}
-  to{transform:translateY(-1500px)}
-}
-
-/* UI */
-.container{max-width:1100px;margin:auto;padding:40px;position:relative;z-index:1}
-.card{background:var(--card);padding:30px;border-radius:18px;border:1px solid #222}
-.layout{display:grid;grid-template-columns:1fr 420px;gap:20px}
-
-input,select{
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  background:var(--bg3);
-  border:1px solid #333;
-  color:white;
-}
-
-button{cursor:pointer}
-
-/* RESULTADOS */
-.results-card{
-  background:var(--card);
-  padding:20px;
-  border-radius:18px;
-  border:1px solid #222;
-  position:sticky;
-  top:20px;
-}
-
-.big{
-  font-size:48px;
-  color:var(--accent);
-}
-
-/* macros */
-.bar{
-  height:6px;
-  background:#222;
-  border-radius:10px;
-  overflow:hidden;
-}
-
-.fill{height:100%;transition:.4s}
-
-.flash{animation:flash .25s ease}
-@keyframes flash{50%{transform:scale(1.01)}}
-</style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -119,118 +17,115 @@ button{cursor:pointer}
 <div class="stars2"></div>
 <div class="stars3"></div>
 
+<nav>
+  <div class="logo">Metabolic<span>.</span></div>
+</nav>
+
+<section class="hero">
+  <h1>Conocé tu <em>metabolismo</em></h1>
+  <p>
+    Calculá calorías y macronutrientes con Harris-Benedict.
+  </p>
+</section>
+
 <div class="container">
 
-<div class="layout">
+  <div class="layout">
 
-<!-- FORM -->
-<div class="card">
+    <!-- FORM -->
+    <div class="card">
 
-<h3>Datos</h3><br>
+      <h3>Datos</h3>
 
-<label>Edad</label>
-<input type="number" id="age" value="30" oninput="calc()"><br><br>
+      <div class="field">
+        <label>Edad</label>
+        <input type="number" id="age" value="30">
+      </div>
 
-<label>Peso</label>
-<input type="number" id="weight" value="75" oninput="calc()"><br><br>
+      <div class="field">
+        <label>Peso (kg)</label>
+        <input type="number" id="weight" value="75">
+      </div>
 
-<label>Altura</label>
-<input type="number" id="height" value="175" oninput="calc()"><br><br>
+      <div class="field">
+        <label>Altura (cm)</label>
+        <input type="number" id="height" value="175">
+      </div>
 
-<label>Actividad</label>
-<select id="activity" onchange="calc()">
-<option value="1.2">Sedentario</option>
-<option value="1.55" selected>Moderado</option>
-<option value="1.9">Muy activo</option>
-</select>
+      <div class="field">
+        <label>Actividad</label>
+
+        <select id="activity">
+          <option value="1.2">Sedentario</option>
+          <option value="1.55" selected>Moderado</option>
+          <option value="1.9">Muy activo</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-card">
+
+      <div class="big-number" id="target">
+        2000
+      </div>
+
+      <div class="subtitle">
+        kcal / día
+      </div>
+
+      <div class="stats">
+
+        <div class="stat">
+          <span>TMB</span>
+          <strong id="tmb"></strong>
+        </div>
+
+        <div class="stat">
+          <span>TDEE</span>
+          <strong id="tdee"></strong>
+        </div>
+
+      </div>
+
+      <div class="macro">
+
+        <label>Proteínas</label>
+        <div class="bar">
+          <div id="pbar" class="fill protein"></div>
+        </div>
+        <span id="pgrams"></span>
+
+      </div>
+
+      <div class="macro">
+
+        <label>Carbohidratos</label>
+        <div class="bar">
+          <div id="cbar" class="fill carb"></div>
+        </div>
+        <span id="cgrams"></span>
+
+      </div>
+
+      <div class="macro">
+
+        <label>Grasas</label>
+        <div class="bar">
+          <div id="fbar" class="fill fat"></div>
+        </div>
+        <span id="fgrams"></span>
+
+      </div>
+
+    </div>
+
+  </div>
 
 </div>
 
-<!-- RESULTADOS -->
-<div class="results-card">
-
-<div class="big" id="target">2000</div>
-<div>kcal/día</div>
-
-<hr><br>
-
-<div>TMB: <span id="tmb"></span></div>
-<div>TDEE: <span id="tdee"></span></div>
-
-<br>
-
-<div>Proteínas</div>
-<div class="bar"><div id="pbar" class="fill" style="background:var(--prot)"></div></div>
-<div id="pgrams"></div><br>
-
-<div>Carbos</div>
-<div class="bar"><div id="cbar" class="fill" style="background:var(--carb)"></div></div>
-<div id="cgrams"></div><br>
-
-<div>Grasas</div>
-<div class="bar"><div id="fbar" class="fill" style="background:var(--fat)"></div></div>
-<div id="fgrams"></div>
-
-</div>
-
-</div>
-</div>
-
-<script>
-
-function $(id){return document.getElementById(id)}
-
-function calc(){
-
-let w = +$('weight').value;
-let h = +$('height').value;
-let a = +$('age').value;
-let act = +$('activity').value;
-
-let tmb = 88.362 + 13.397*w + 4.799*h - 5.677*a;
-let tdee = tmb * act;
-
-let target = tdee;
-
-let p = target * 0.25 / 4;
-let c = target * 0.5 / 4;
-let f = target * 0.25 / 9;
-
-let max = Math.max(p,c,f);
-
-$('target').innerText = Math.round(target);
-$('tmb').innerText = Math.round(tmb);
-$('tdee').innerText = Math.round(tdee);
-
-$('pgrams').innerText = Math.round(p)+" g";
-$('cgrams').innerText = Math.round(c)+" g";
-$('fgrams').innerText = Math.round(f)+" g";
-
-$('pbar').style.width = (p/max*100)+"%";
-$('cbar').style.width = (c/max*100)+"%";
-$('fbar').style.width = (f/max*100)+"%";
-
-document.querySelector('.results-card').classList.add('flash');
-setTimeout(()=>document.querySelector('.results-card').classList.remove('flash'),200);
-
-localStorage.setItem("metabolic",JSON.stringify({w,h,a,act}));
-
-}
-
-window.onload = ()=>{
-let d = JSON.parse(localStorage.getItem("metabolic"));
-if(d){
-$('weight').value=d.w;
-$('height').value=d.h;
-$('age').value=d.a;
-$('activity').value=d.act;
-}
-calc();
-}
-
-calc();
-
-</script>
+<script src="app.js"></script>
 
 </body>
 </html>
