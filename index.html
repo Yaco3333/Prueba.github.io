@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriCalc — Calculadora Harris-Benedict</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #070a0f;
+    --card: rgba(10,14,22,0.78);
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #eef0f4;
+    --text2: #9aa3b2;
+    --text3: #5a6478;
+    --accent: #c8f560;
+    --accent-dim: rgba(200,245,96,0.1);
+    --prot: #6ab5ff;
+    --carb: #7de8a0;
+    --fat: #ffc46b;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* shader canvas */
+  #shaderCanvas {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+    opacity: 0.6;
+    display: block;
+  }
+
+  /* nav */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 48px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(7,10,15,0.72);
+    backdrop-filter: blur(22px);
+  }
+  .logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .logo span { color: var(--accent); }
+  .nav-pill {
+    background: var(--accent-dim); border: 1px solid rgba(200,245,96,0.22);
+    color: var(--accent); font-size: 12px; font-weight: 500;
+    padding: 6px 14px; border-radius: 100px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+
+  /* hero */
+  .hero {
+    position: relative; padding: 160px 48px 80px;
+    max-width: 1100px; margin: 0 auto; z-index: 1;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--accent); border: 1px solid rgba(200,245,96,0.28);
+    padding: 6px 14px; border-radius: 100px; margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .hero-tag::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(.8)} }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(52px,7vw,96px); font-weight: 300;
+    line-height: 1.0; letter-spacing: -0.03em;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .hero-sub {
+    max-width: 500px; font-size: 16px; color: var(--text2);
+    line-height: 1.7; margin-top: 20px; font-weight: 300;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .hero-deco {
+    position: absolute; top: 80px; right: -60px;
+    width: 480px; height: 480px; border-radius: 50%;
+    border: 1px solid var(--border); pointer-events: none;
+    animation: fadeUp 0.8s 0.3s ease both;
+  }
+  .hero-deco::after {
+    content: ''; position: absolute; inset: 40px;
+    border-radius: 50%; border: 1px solid var(--border2);
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+  /* layout */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 48px 100px; position: relative; z-index: 1; }
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 24px; align-items: start; }
+
+  /* card */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px; position: relative; overflow: hidden;
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border2), transparent);
+  }
+  .card-title {
+    font-family: 'Fraunces', serif; font-size: 13px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 24px;
+  }
+
+  /* form */
+  .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field.full { grid-column: 1/-1; }
+  label { font-size: 12px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+  input[type="number"], select {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; padding: 12px 16px; outline: none;
+    transition: border-color 0.2s; width: 100%; -webkit-appearance: none;
+  }
+  input[type="number"]:focus, select:focus { border-color: rgba(200,245,96,0.38); }
+  select option { background: #0d1117; }
+
+  .seg {
+    display: flex; background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px;
+  }
+  .seg button {
+    flex: 1; background: transparent; border: none; border-radius: 8px;
+    color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    font-weight: 500; padding: 9px 8px; cursor: pointer; transition: all 0.2s;
+  }
+  .seg button.active { background: var(--accent); color: #080c04; }
+  .seg button:not(.active):hover { color: var(--text2); }
+
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 100px; color: var(--text2); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .pill.active { background: var(--accent-dim); border-color: rgba(200,245,96,0.32); color: var(--accent); font-weight: 500; }
+  .pill:not(.active):hover { border-color: var(--border2); color: var(--text); }
+
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* results */
+  .results-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+    overflow: hidden; position: sticky; top: 90px;
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  }
+  .results-header { padding: 28px 28px 24px; border-bottom: 1px solid var(--border); }
+  .results-body { padding: 28px; }
+  .big-number {
+    font-family: 'Fraunces', serif; font-size: 64px; font-weight: 300;
+    letter-spacing: -0.03em; color: var(--accent); line-height: 1;
+  }
+  .big-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+  .stat { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px 16px; }
+  .stat-val { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 300; }
+  .stat-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+  .macro-title { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+  .macro-item { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .macro-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .macro-info { flex: 1; }
+  .macro-name { font-size: 13px; color: var(--text2); }
+  .macro-grams { font-size: 18px; font-weight: 500; }
+  .macro-bar-wrap { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .macro-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+  .macro-pct { font-size: 12px; color: var(--text3); min-width: 36px; text-align: right; }
+
+  .tip-box {
+    background: var(--accent-dim); border: 1px solid rgba(200,245,96,0.18);
+    border-radius: 12px; padding: 14px 16px; font-size: 13px;
+    color: var(--text2); line-height: 1.6; margin-top: 20px;
+  }
+  .tip-box strong { color: var(--accent); font-weight: 500; }
+
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .profile-btn {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: all 0.2s; text-align: left;
+  }
+  .profile-btn .pb-name { font-size: 13px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 4px; }
+  .profile-btn .pb-ratio { font-size: 11px; color: var(--text3); }
+  .profile-btn.active { border-color: rgba(200,245,96,0.32); background: var(--accent-dim); }
+  .profile-btn.active .pb-name { color: var(--accent); }
+  .profile-btn:not(.active):hover { border-color: var(--border2); }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 32px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--text3); position: relative; z-index: 1;
+    background: rgba(7,10,15,0.6); backdrop-filter: blur(10px);
+  }
+
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    .hero { padding: 120px 24px 60px; }
+    .hero-deco { display: none; }
+    .container { padding: 0 24px 80px; }
+    .layout { grid-template-columns: 1fr; }
+    .results-card { position: static; }
+    footer { flex-direction: column; gap: 8px; text-align: center; padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="shaderCanvas"></canvas>
+
+<nav>
+  <div class="logo">Nutri<span>Calc</span></div>
+  <div class="nav-pill">Harris-Benedict</div>
+</nav>
+
+<section class="hero">
+  <div class="hero-deco"></div>
+  <div class="hero-tag">Calculadora Nutricional</div>
+  <h1>Conocé tu<br><em>metabolismo</em></h1>
+  <p class="hero-sub">Calculá tu tasa metabólica basal, gasto calórico total y objetivos de macronutrientes con la fórmula revisada de Harris-Benedict.</p>
+</section>
+
+<div class="container">
+  <div class="layout">
+    <div>
+      <div class="card" style="animation:fadeUp 0.6s 0.3s ease both">
+        <div class="card-title">Datos personales</div>
+        <div class="field-group">
+          <div class="field full">
+            <label>Sexo biológico</label>
+            <div class="seg" id="sexSeg">
+              <button class="active" onclick="setSex('M',this)">Hombre</button>
+              <button onclick="setSex('F',this)">Mujer</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Edad</label>
+            <input type="number" id="age" value="30" min="15" max="100" oninput="calc()">
+          </div>
+          <div class="field">
+            <label>Unidad</label>
+            <div class="seg" id="unitSeg">
+              <button class="active" onclick="setUnit('metric',this)">Métrico</button>
+              <button onclick="setUnit('imperial',this)">Imperial</button>
+            </div>
+          </div>
+          <div class="field">
+            <label id="wLabel">Peso (kg)</label>
+            <input type="number" id="weight" value="75" min="30" max="350" oninput="calc()">
+          </div>
+          <div class="field">
+            <label id="hLabel">Altura (cm)</label>
+            <input type="number" id="height" value="175" min="100" max="230" oninput="calc()">
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-title">Nivel de actividad</div>
+        <div class="field">
+          <select id="activity" onchange="calc()">
+            <option value="1.2">Sedentario — poco o nada de ejercicio</option>
+            <option value="1.375">Ligero — ejercicio 1–3 días/semana</option>
+            <option value="1.55" selected>Moderado — ejercicio 3–5 días/semana</option>
+            <option value="1.725">Activo — ejercicio intenso 6–7 días/semana</option>
+            <option value="1.9">Muy activo — trabajo físico + entrenamiento doble</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;animation:fadeUp 0.6s 0.4s ease both">
+        <div class="card-title">Objetivo calórico</div>
+        <div class="pill-group" id="goalGroup">
+          <button class="pill active" onclick="setGoal('maintain',this)">Mantener peso</button>
+          <button class="pill" onclick="setGoal('lose_slow',this)">Déficit −250 kcal</button>
+          <button class="pill" onclick="setGoal('lose',this)">Déficit −500 kcal</button>
+          <button class="pill" onclick="setGoal('lose_fast',this)">Déficit −750 kcal</button>
+          <button class="pill" onclick="setGoal('gain',this)">Superávit +300 kcal</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;animation:fadeUp 0.6s 0.5s ease both">
+        <div class="card-title">Perfil de macronutrientes</div>
+        <div class="profile-grid" id="profileGrid">
+          <button class="profile-btn active" onclick="setMacro('balanced',this)">
+            <span class="pb-name">Equilibrado</span>
+            <span class="pb-ratio">P 25% · C 50% · G 25%</span>
+          </button>
+          <button class="profile-btn" onclick="setMacro('highprot',this)">
+            <span class="pb-name">Alto en proteína</span>
+            <span class="pb-ratio">P 35% · C 40% · G 25%</span>
+          </button>
+          <button class="profile-btn" onclick="setMacro('lowcarb',this)">
+            <span class="pb-name">Bajo en carbos</span>
+            <span class="pb-ratio">P 30% · C 25% · G 45%</span>
+          </button>
+          <button class="profile-btn" onclick="setMacro('keto',this)">
+            <span class="pb-name">Cetogénico</span>
+            <span class="pb-ratio">P 25% · C 5% · G 70%</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="results-card" style="animation:fadeUp 0.6s 0.4s ease both">
+      <div class="results-header">
+        <div class="card-title">Meta calórica</div>
+        <div class="big-number" id="rTarget">—</div>
+        <div class="big-label">kcal / día</div>
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-val" id="rTMB">—</div>
+            <div class="stat-lbl">TMB basal</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" id="rTDEE">—</div>
+            <div class="stat-lbl">TDEE total</div>
+          </div>
+        </div>
+      </div>
+      <div class="results-body">
+        <div class="macro-title">Macronutrientes</div>
+        <div class="macro-item">
+          <div class="macro-dot" style="background:var(--prot)"></div>
+          <div class="macro-info">
+            <div class="macro-name">Proteínas</div>
+            <div class="macro-grams" id="mProt">—</div>
+            <div class="macro-bar-wrap"><div class="macro-bar-fill" id="bProt" style="width:0%;background:var(--prot)"></div></div>
+          </div>
+          <div class="macro-pct" id="pProt">—</div>
+        </div>
+        <div class="macro-item">
+          <div class="macro-dot" style="background:var(--carb)"></div>
+          <div class="macro-info">
+            <div class="macro-name">Carbohidratos</div>
+            <div class="macro-grams" id="mCarb">—</div>
+            <div class="macro-bar-wrap"><div class="macro-bar-fill" id="bCarb" style="width:0%;background:var(--carb)"></div></div>
+          </div>
+          <div class="macro-pct" id="pCarb">—</div>
+        </div>
+        <div class="macro-item">
+          <div class="macro-dot" style="background:var(--fat)"></div>
+          <div class="macro-info">
+            <div class="macro-name">Grasas</div>
+            <div class="macro-grams" id="mFat">—</div>
+            <div class="macro-bar-wrap"><div class="macro-bar-fill" id="bFat" style="width:0%;background:var(--fat)"></div></div>
+          </div>
+          <div class="macro-pct" id="pFat">—</div>
+        </div>
+        <div class="tip-box" id="tipBox"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>© 2024 NutriCalc — Basado en Harris-Benedict (revisado 1990)</span>
+  <span>Solo orientativo — consultá un profesional de la salud</span>
+</footer>
+
+<script>
+// ── AURORA SHADER — WebGL puro, sin dependencias ─────────────────────────────
+window.addEventListener('load', function () {
+(function () {
+  const canvas = document.getElementById('shaderCanvas');
+  // Forzar tamaño inicial antes de pedir contexto
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+
+  const VS = `
+    attribute vec2 a_pos;
+    void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+  `;
+
+  const FS = `
+    precision highp float;
+    uniform float iTime;
+    uniform vec2  iResolution;
+
+    #define NUM_OCTAVES 3
+
+    float rand(vec2 n) {
+      return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+    }
+    float noise(vec2 p) {
+      vec2 ip = floor(p);
+      vec2 u  = fract(p);
+      u = u*u*(3.0-2.0*u);
+      return mix(
+        mix(rand(ip), rand(ip+vec2(1,0)), u.x),
+        mix(rand(ip+vec2(0,1)), rand(ip+vec2(1,1)), u.x), u.y
+      );
+    }
+    float fbm(vec2 x) {
+      float v=0.0, a=0.3;
+      vec2 shift=vec2(100.0);
+      mat2 rot=mat2(cos(0.5),sin(0.5),-sin(0.5),cos(0.5));
+      for(int i=0;i<NUM_OCTAVES;++i){
+        v+=a*noise(x); x=rot*x*2.0+shift; a*=0.4;
+      }
+      return v;
+    }
+    void main() {
+      vec2 shake=vec2(sin(iTime*1.2)*0.005, cos(iTime*2.1)*0.005);
+      vec2 p=((gl_FragCoord.xy+shake*iResolution.xy)-iResolution.xy*0.5)
+             /iResolution.y*mat2(6.0,-4.0,4.0,6.0);
+      vec2 v;
+      vec4 o=vec4(0.0);
+      float f=2.0+fbm(p+vec2(iTime*5.0,0.0))*0.5;
+      for(float i=0.0;i<35.0;i++){
+        v=p+cos(i*i+(iTime+p.x*0.08)*0.025+i*vec2(13.0,11.0))*3.5
+          +vec2(sin(iTime*3.0+i)*0.003,cos(iTime*3.5-i)*0.003);
+        float tailNoise=fbm(v+vec2(iTime*0.5,i))*0.3*(1.0-(i/35.0));
+        vec4 col=vec4(
+          0.1+0.3*sin(i*0.2+iTime*0.4),
+          0.3+0.5*cos(i*0.3+iTime*0.5),
+          0.7+0.3*sin(i*0.4+iTime*0.3),
+          1.0
+        );
+        vec4 contrib=col*exp(sin(i*i+iTime*0.8))
+          /length(max(v,vec2(v.x*f*0.015,v.y*1.5)));
+        float thin=smoothstep(0.0,1.0,i/35.0)*0.6;
+        o+=contrib*(1.0+tailNoise*0.8)*thin;
+      }
+      o=tanh(pow(o/100.0,vec4(1.6)));
+      gl_FragColor=o*1.5;
+    }
+  `;
+
+  function compileShader(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s); return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog); gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'a_pos');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  const uTime = gl.getUniformLocation(prog, 'iTime');
+  const uRes  = gl.getUniformLocation(prog, 'iResolution');
+
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    canvas.width  = w;
+    canvas.height = h;
+    gl.viewport(0, 0, w, h);
+    gl.uniform2f(uRes, w, h);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const start = performance.now();
+  (function loop() {
+    gl.uniform1f(uTime, (performance.now() - start) / 1000);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(loop);
+  })();
+})();
+}); // end window load
+</script>
+
+<!-- ── APP LOGIC ─────────────────────────────────────────────────────────── -->
+<script>
+let sex = 'M', unit = 'metric', goal = 'maintain', macroProfile = 'balanced';
+
+const goalDeltas = { maintain:0, lose_slow:-250, lose:-500, lose_fast:-750, gain:300 };
+const macroProfiles = {
+  balanced: {p:.25,c:.50,f:.25},
+  highprot: {p:.35,c:.40,f:.25},
+  lowcarb:  {p:.30,c:.25,f:.45},
+  keto:     {p:.25,c:.05,f:.70},
+};
+const tips = {
+  maintain:  '<strong>Mantener peso:</strong> Tu ingesta iguala tu gasto. Enfocate en calidad nutricional y consistencia.',
+  lose_slow: '<strong>Déficit suave:</strong> −250 kcal produce ~250 g de pérdida semanal. Ideal para preservar masa muscular.',
+  lose:      '<strong>Déficit moderado:</strong> El estándar clínico para bajar ~0,5 kg/semana de forma sostenible.',
+  lose_fast: '<strong>Déficit agresivo:</strong> Eficaz a corto plazo, requiere supervisión. Priorizá proteína alta.',
+  gain:      '<strong>Superávit:</strong> +300 kcal para ganar masa minimizando grasa. Combinalo con fuerza progresiva.',
+};
+
+function setSex(v,b){ sex=v; document.querySelectorAll('#sexSeg button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); calc(); }
+function setUnit(v,b){
+  unit=v;
+  document.querySelectorAll('#unitSeg button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  document.getElementById('wLabel').textContent = unit==='metric'?'Peso (kg)':'Peso (lb)';
+  document.getElementById('hLabel').textContent = unit==='metric'?'Altura (cm)':'Altura (in)';
+  calc();
+}
+function setGoal(v,b){ goal=v; document.querySelectorAll('#goalGroup .pill').forEach(x=>x.classList.remove('active')); b.classList.add('active'); calc(); }
+function setMacro(v,b){ macroProfile=v; document.querySelectorAll('#profileGrid .profile-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); calc(); }
+function fmt(n){ return Math.round(n).toLocaleString('es-AR'); }
+
+function calc(){
+  let w=parseFloat(document.getElementById('weight').value)||0;
+  let h=parseFloat(document.getElementById('height').value)||0;
+  let a=parseFloat(document.getElementById('age').value)||0;
+  const act=parseFloat(document.getElementById('activity').value);
+  if(unit==='imperial'){w*=.453592;h*=2.54;}
+  let tmb=sex==='M'
+    ? 88.362+13.397*w+4.799*h-5.677*a
+    : 447.593+9.247*w+3.098*h-4.330*a;
+  const tdee=tmb*act, target=tdee+goalDeltas[goal];
+  const mp=macroProfiles[macroProfile];
+  const pG=(target*mp.p)/4, cG=(target*mp.c)/4, fG=(target*mp.f)/9;
+  const maxG=Math.max(pG,cG,fG);
+  document.getElementById('rTarget').textContent=fmt(target);
+  document.getElementById('rTMB').textContent=fmt(tmb);
+  document.getElementById('rTDEE').textContent=fmt(tdee);
+  document.getElementById('mProt').textContent=fmt(pG)+' g';
+  document.getElementById('mCarb').textContent=fmt(cG)+' g';
+  document.getElementById('mFat').textContent=fmt(fG)+' g';
+  document.getElementById('pProt').textContent=Math.round(mp.p*100)+'%';
+  document.getElementById('pCarb').textContent=Math.round(mp.c*100)+'%';
+  document.getElementById('pFat').textContent=Math.round(mp.f*100)+'%';
+  document.getElementById('bProt').style.width=Math.round(pG/maxG*100)+'%';
+  document.getElementById('bCarb').style.width=Math.round(cG/maxG*100)+'%';
+  document.getElementById('bFat').style.width=Math.round(fG/maxG*100)+'%';
+  document.getElementById('tipBox').innerHTML=tips[goal];
+}
+calc();
+</script>
+</body>
+</html>
