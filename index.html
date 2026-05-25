@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NutriCalc — Calculadora Harris-Benedict</title>
+<title>Metabolic — Calculadora Harris-Benedict</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -35,17 +35,6 @@
     color: var(--text);
     min-height: 100vh;
     overflow-x: hidden;
-  }
-
-  /* ── NOISE TEXTURE OVERLAY ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
   }
 
   /* ── NAV ── */
@@ -463,7 +452,7 @@
 <body>
 
 <nav>
-  <div class="logo">Nutri<span>Calc</span></div>
+  <div class="logo">Metabolic<span>.</span></div>
   <div class="nav-pill">Harris-Benedict</div>
 </nav>
 
@@ -625,7 +614,7 @@
 </div>
 
 <footer>
-  <span>© 2024 NutriCalc — Basado en Harris-Benedict (revisado 1990)</span>
+  <span>© 2026 Metabolic — Basado en Harris-Benedict (revisado 1990)</span>
   <span>Solo orientativo — consultá un profesional de la salud</span>
 </footer>
 
